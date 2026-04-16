@@ -30,9 +30,7 @@ router.post('/log', auth, async (req, res) => {
     const log = await ProgressLog.create(logData);
 
     // Dispatch the Redis event
-    if (req.app.locals.redis) {
-      req.app.locals.redis.publish('progress-updates', JSON.stringify(log));
-    }
+    req.app?.locals?.redis?.publish('progress-updates', JSON.stringify(log));
 
     res.status(201).json(log);
   } catch (err) { 

@@ -21,7 +21,7 @@ async function startupDb() {
     process.exit(1);
   }
 }
-startupDb();
+startupDb(); // NOSONAR
 
 // Redis publisher — used by routes to push events
 const redisClient = new Redis({ host: REDIS_HOST, port: Number(REDIS_PORT) });
