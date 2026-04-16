@@ -15,7 +15,10 @@ router.get('/summary/:userId', auth, async (req, res) => {
       .sort({ date: -1 })
       .limit(10);
     res.json(logs);
-  } catch (err) { res.status(500).json({ message: 'An internal server error occurred.' }); }
+  } catch (err) { 
+    console.error('[Progress summary]', err.message);
+    res.status(500).json({ message: 'An internal server error occurred.' }); 
+  }
 });
 
 // POST /progress/log  — log new progress entry + push Redis event
@@ -32,7 +35,10 @@ router.post('/log', auth, async (req, res) => {
     }
 
     res.status(201).json(log);
-  } catch (err) { res.status(500).json({ message: 'An internal server error occurred.' }); }
+  } catch (err) { 
+    console.error('[Progress log]', err.message);
+    res.status(500).json({ message: 'An internal server error occurred.' }); 
+  }
 });
 
 module.exports = router;
