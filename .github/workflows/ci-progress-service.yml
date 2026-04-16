@@ -5,20 +5,20 @@ on:
     branches: 
       - develop
       - main
-      # - feature/ci-progress-service
-    paths:
-      - "services/progress-service/**"
-      - ".github/workflows/ci-progress-service.yml"
-      - ".github/workflows/_ci-template.yml"
+      - feature/ci-progress-service
+    #paths:
+      #- "services/progress-service/**"
+      #- ".github/workflows/ci-progress-service.yml"
+      #- ".github/workflows/_ci-template.yml"
   pull_request:
     branches:
       - develop
       - main
       # - feature/ci-progress-service
-    paths:
-      - "services/progress-service/**"
-      - ".github/workflows/ci-progress-service.yml"
-      - ".github/workflows/_ci-template.yml"
+    # paths:
+      #- "services/progress-service/**"
+      #- ".github/workflows/ci-progress-service.yml"
+      #- ".github/workflows/_ci-template.yml"
 
 # give the workflow permission to write to the repository contents
 permissions:
@@ -27,10 +27,10 @@ permissions:
 
 jobs:
   ci:
-    uses: ./.github/workflows/_ci-template.yml
+    uses: fitforge101/fitforge-shared/.github/workflows/_ci-template.yml@main
     with:
       service-name: progress-service
-      service-path: services/progress-service
+      service-path: .
       runtime: node
       node-version: "20"
       environment: ${{ github.ref_name }}
