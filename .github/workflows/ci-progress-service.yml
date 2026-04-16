@@ -19,6 +19,7 @@ on:
       #- "services/progress-service/**"
       #- ".github/workflows/ci-progress-service.yml"
       #- ".github/workflows/_ci-template.yml"
+      #
 
 # give the workflow permission to write to the repository contents
 permissions:
@@ -27,7 +28,7 @@ permissions:
 
 jobs:
   ci:
-    uses: fitforge101/fitforge-shared/.github/workflows/_ci-template.yml@main
+    uses: fitforge101/fitforge-shared/.github/workflows/_ci-template.yml@features/templates
     with:
       service-name: progress-service
       service-path: .
