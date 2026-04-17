@@ -1,3 +1,4 @@
+process.env.JWT_SECRET = 'test_secret_for_jest_validation';
 const jwt = require('jsonwebtoken');
 const auth = require('./auth');
 
@@ -17,8 +18,6 @@ describe('Auth Middleware Validation', () => {
     };
     nextFunction = jest.fn();
     
-    // Inject a secret for testing purposes only
-    process.env.JWT_SECRET = 'test_secret_for_jest_validation';
   });
 
   it('Scenario 1: Should block request with 401 if Authorization header is missing', () => {
