@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   repository: aswin018/progress-service
   pullPolicy: Always
-  tag: "dev-52284cfd40862e3a384c81608c0eb492716a07aa"
+  tag: "dev-cda713e477810c58a9ec051c0501f094e8850c51"
 
 # Resources configured for Guaranteed QoS
 resources:
