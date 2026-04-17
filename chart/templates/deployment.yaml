@@ -5,9 +5,7 @@ metadata:
   labels:
     app: progress-service
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       app: progress-service

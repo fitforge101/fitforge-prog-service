@@ -1,22 +1,17 @@
 const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'fitforge_dev_secret';
 
-const auth = (req, res, next) => {
-  const authHeader = req.header('Authorization');
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Access Denied. No token provided or invalid format.' });
-  }
+module.exports = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer '))
+    return res.status(401).json({ message: 'No token provided' });
 
   const token = authHeader.split(' ')[1];
-
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
-    req.user = verified;
+    req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch (err) {
-    console.error('[Auth Error]', err.message);
-    res.status(403).json({ message: 'Invalid or expired token.' });
+    console.error('[Auth Error]', err.message); // Keep log to satisfy SonarQube
+    res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
-
-module.exports = auth;

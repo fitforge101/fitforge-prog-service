@@ -9,7 +9,7 @@ describe('Auth Middleware Validation', () => {
   // Run before every test
   beforeEach(() => {
     mockReq = {
-      header: jest.fn()
+      headers: {}
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
@@ -22,17 +22,15 @@ describe('Auth Middleware Validation', () => {
   });
 
   it('Scenario 1: Should block request with 401 if Authorization header is missing', () => {
-    mockReq.header.mockReturnValue(undefined);
-
     auth(mockReq, mockRes, nextFunction);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockRes.json).toHaveBeenCalledWith({ message: 'Access Denied. No token provided or invalid format.' });
+    expect(mockRes.json).toHaveBeenCalledWith({ message: 'No token provided' });
     expect(nextFunction).not.toHaveBeenCalled(); // The route is never hit
   });
 
   it('Scenario 2: Should block request with 401 if token format is invalid', () => {
-    mockReq.header.mockReturnValue('just_the_token_without_bearer_prefix');
+    mockReq.headers.authorization = 'just_the_token_without_bearer_prefix';
 
     auth(mockReq, mockRes, nextFunction);
 
@@ -40,15 +38,15 @@ describe('Auth Middleware Validation', () => {
     expect(nextFunction).not.toHaveBeenCalled();
   });
 
-  it('Scenario 3: Should block request with 403 if the token is tampered with or signed by unknown source', () => {
+  it('Scenario 3: Should block request with 401 if the token is tampered with or signed by unknown source', () => {
     // A hacker signs a token using their own secret key
     const maliciousToken = jwt.sign({ id: 'hacker123' }, 'malicious_secret_key');
-    mockReq.header.mockReturnValue(`Bearer ${maliciousToken}`);
+    mockReq.headers.authorization = `Bearer ${maliciousToken}`;
 
     auth(mockReq, mockRes, nextFunction);
 
-    expect(mockRes.status).toHaveBeenCalledWith(403);
-    expect(mockRes.json).toHaveBeenCalledWith({ message: 'Invalid or expired token.' });
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockRes.json).toHaveBeenCalledWith({ message: 'Invalid or expired token' });
     expect(nextFunction).not.toHaveBeenCalled();
   });
 
@@ -58,7 +56,7 @@ describe('Auth Middleware Validation', () => {
     // Server signs token securely with matching environment secret
     const validToken = jwt.sign(validUserPayload, process.env.JWT_SECRET);
     
-    mockReq.header.mockReturnValue(`Bearer ${validToken}`);
+    mockReq.headers.authorization = `Bearer ${validToken}`;
 
     auth(mockReq, mockRes, nextFunction);
 
