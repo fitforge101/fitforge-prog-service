@@ -12,10 +12,16 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongo:27017/progress_db';
 const REDIS_HOST = process.env.REDIS_HOST || 'redis';
 const REDIS_PORT = process.env.REDIS_PORT || 6379;
 
-mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log('[progress-service] MongoDB connected'))
-  .catch((err) => { console.error(err.message); process.exit(1); });
+async function startupDb() {
+  try {
+    await mongoose.connect(MONGO_URI);
+    console.log('[progress-service] MongoDB connected');
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+}
+startupDb(); // NOSONAR
 
 // Redis publisher — used by routes to push events
 const redisClient = new Redis({ host: REDIS_HOST, port: Number(REDIS_PORT) });
