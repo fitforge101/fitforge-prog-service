@@ -99,7 +99,7 @@ jobs:
       - name: Approved — proceeding to deploy progress-service to Production
         run: echo "Production deployment approved for tag ${{ needs.publish.outputs.image-tag }}"
 
-  # ── GitHub Native CD — deploy directly to prod cluster via OIDC ──────────────
+  # ──ud GitHub Native CD — deploy directly to prod cluster via OIDC ──────────────
   deploy-to-prod:
     name: Deploy progress-service to prod cluster
     needs: [prod-approval-gate, publish]
