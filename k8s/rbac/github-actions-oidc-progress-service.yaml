@@ -1,0 +1,37 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-progress-service-deployer
+  namespace: fitforge-env
+rules:
+  # Permissions to update the deployment image (kubectl set image)
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["progress-service"]
+    verbs: ["get", "patch", "update"] # Restrict to only this specific deployment for maximum security
+    
+  # Permissions to check rollout status (kubectl rollout status)
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+
+  # Permissions to show final pod state (kubectl get pods)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-progress-service-deployer-binding
+  namespace: fitforge-env
+subjects:
+  - kind: User
+    # This precisely matches the GitHub OIDC JWT 'sub' claim generated when the main branch runs
+    name: repo:fitforge101/fitforge-prog-service:ref:refs/heads/main
+roleRef:
+  kind: Role
+  name: github-actions-progress-service-deployer
+  apiGroup: rbac.authorization.k8s.io
