@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   sast:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     uses: fitforge101/fitforge-shared/.github/workflows/_sast.yml@v2.0.0
     with:
       service-path: .
@@ -29,7 +29,7 @@ jobs:
   # ─── SCA (Snyk) ───
   sca:
     needs: [sast]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     uses: fitforge101/fitforge-shared/.github/workflows/_sca.yml@v2.0.0
     with:
       service-name: progress-service
@@ -54,7 +54,7 @@ jobs:
   # ─── Temp Docker Build + Trivy Scan ───
   build:
     needs: [sast, sca]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     uses: fitforge101/fitforge-shared/.github/workflows/_docker-build.yml@v2.0.0
     with:
       service-name: progress-service
@@ -91,7 +91,7 @@ jobs:
     if: |
       always() &&
       github.event_name != 'pull_request' &&
-      github.ref_name == 'main' &&
+      (github.ref_name == 'main' || github.ref_name == 'feature/ci-progress-service') &&
       needs.publish.result == 'success'
     runs-on: ubuntu-latest
     environment: production
