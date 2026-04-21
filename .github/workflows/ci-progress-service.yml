@@ -14,10 +14,11 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   sast:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     uses: fitforge101/fitforge-shared/.github/workflows/_sast.yml@v2.0.0
     with:
       service-path: .
@@ -28,7 +29,7 @@ jobs:
   # ─── SCA (Snyk) ───
   sca:
     needs: [sast]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     uses: fitforge101/fitforge-shared/.github/workflows/_sca.yml@v2.0.0
     with:
       service-name: progress-service
@@ -53,7 +54,7 @@ jobs:
   # ─── Temp Docker Build + Trivy Scan ───
   build:
     needs: [sast, sca]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     uses: fitforge101/fitforge-shared/.github/workflows/_docker-build.yml@v2.0.0
     with:
       service-name: progress-service
@@ -84,14 +85,84 @@ jobs:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
-  # ─── Update Helm Chart (CD) ───
-  cd:
+  # ── Production CD Gate───────────────────────────────────────────────────────
+  prod-approval-gate:
     needs: [publish]
-    if: needs.publish.result == 'success'
-    uses: fitforge101/fitforge-shared/.github/workflows/_cd-template.yml@feature/templates
-    with:
-      service-name: progress-service
-      image-tag: ${{ needs.publish.outputs.image-tag }}
-      environment: ${{ github.ref_name }}
-    secrets:
-      HELM_REPO_PAT: ${{ secrets.HELM_REPO_PAT }}
+    if: |
+      always() &&
+      github.event_name != 'pull_request' &&
+      (github.ref_name == 'main' || github.ref_name == 'feature/ci-progress-service') &&
+      needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Approved — proceeding to deploy progress-service to Production
+        run: echo "Production deployment approved for tag ${{ needs.publish.outputs.image-tag }}"
+
+  # ──ud GitHub Native CD — deploy directly to prod cluster via OIDC ──────────────
+  deploy-to-prod:
+    name: Deploy progress-service to prod cluster
+    needs: [prod-approval-gate, publish]
+    if: |
+      always() &&
+      needs.prod-approval-gate.result == 'success'
+    runs-on: self-hosted
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Request GitHub OIDC token
+        id: oidc
+        run: |
+          TOKEN=$(curl -sSf \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=kubernetes" \
+            | jq -r '.value')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Configure kubectl (OIDC kubeconfig)
+        run: |
+          echo "${{ secrets.K8S_CA_CERT }}" | base64 -d > ca.crt
+          kubectl config set-cluster prod-cluster \
+            --server=${{ secrets.K8S_API_SERVER }} \
+            --certificate-authority=ca.crt \
+            --embed-certs=true
+
+          kubectl config set-credentials github-actions-oidc \
+            --token="${{ steps.oidc.outputs.token }}"
+
+          kubectl config set-context prod \
+            --cluster=prod-cluster \
+            --user=github-actions-oidc
+
+          kubectl config use-context prod
+
+      - name: Deploy new image to dev
+        run: |
+          TAG="${{ needs.publish.outputs.image-tag }}"
+          IMAGE="fitforge101/fitforge-prog-service:${TAG}"
+          echo "Deploying image: ${IMAGE}"
+
+          # Target the native Kubernetes deployment directly
+          kubectl set image deployment/progress-service \
+            progress-service="${IMAGE}" \
+            -n fitforge-dev
+
+      - name: Wait for rollout to complete
+        run: |
+          kubectl rollout status deployment/progress-service \
+            -n fitforge-dev \
+            --timeout=5m
+
+      - name: Show final pod state
+        if: always()
+        run: |
+          kubectl get pods \
+            -n fitforge-dev \
+            -l app=progress-service \
+            -o wide
