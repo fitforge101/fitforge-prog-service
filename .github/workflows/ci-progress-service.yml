@@ -142,7 +142,7 @@ jobs:
 
           kubectl config use-context prod
 
-      - name: Deploy new image to prod
+      - name: Deploy new image to dev
         run: |
           TAG="${{ needs.publish.outputs.image-tag }}"
           IMAGE="fitforge101/fitforge-prog-service:${TAG}"
